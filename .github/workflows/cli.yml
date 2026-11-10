@@ -1,0 +1,55 @@
+name: cli
+
+on:
+  push:
+    paths: ["cli/**", ".github/workflows/cli.yml"]
+  pull_request:
+    paths: ["cli/**", ".github/workflows/cli.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cli-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: cli
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: cli
+      - name: libudev (serial port enumeration)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
+      - run: cargo test --locked
+      - name: clippy (advisory, warnings do not fail the build)
+        run: cargo clippy --locked --all-targets
+
+  msrv:
+    name: minimum supported Rust (1.90)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.90.0
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: cli
+      - run: sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
+        working-directory: .
+      - run: cargo test --locked

@@ -1,0 +1,103 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  check-version:
+    name: tag matches Cargo.toml
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          tag="${GITHUB_REF_NAME#v}"
+          crate="$(grep -m1 '^version' cli/Cargo.toml | cut -d'"' -f2)"
+          if [ "$tag" != "$crate" ]; then
+            echo "Tag v$tag does not match cli/Cargo.toml version $crate" >&2
+            exit 1
+          fi
+
+  build:
+    name: build (${{ matrix.target }})
+    needs: check-version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, target: x86_64-pc-windows-msvc }
+          - { os: ubuntu-22.04,   target: x86_64-unknown-linux-gnu }
+          - { os: macos-latest,   target: aarch64-apple-darwin }
+          - { os: macos-latest,   target: x86_64-apple-darwin }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: cli
+          key: ${{ matrix.target }}
+      - name: libudev (serial port enumeration)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
+
+      - name: Build
+        working-directory: cli
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart("v")
+          $name = "rfid-cli-$version-${{ matrix.target }}"
+          New-Item -ItemType Directory -Path "dist/$name" | Out-Null
+          Copy-Item "cli/target/${{ matrix.target }}/release/rfid-cli.exe" "dist/$name/"
+          Copy-Item README.md, LICENSE.md "dist/$name/"
+          Compress-Archive -Path "dist/$name" -DestinationPath "dist/$name.zip"
+          $hash = (Get-FileHash "dist/$name.zip" -Algorithm SHA256).Hash.ToLower()
+          "$hash  $name.zip" | Out-File -Encoding ascii "dist/$name.zip.sha256"
+          Remove-Item -Recurse "dist/$name"
+
+      - name: Package (Linux, macOS)
+        if: runner.os != 'Windows'
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          name="rfid-cli-${version}-${{ matrix.target }}"
+          mkdir -p "dist/$name"
+          cp "cli/target/${{ matrix.target }}/release/rfid-cli" README.md LICENSE.md "dist/$name/"
+          tar -C dist -czf "dist/$name.tar.gz" "$name"
+          (cd dist && shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256")
+          rm -rf "dist/$name"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rfid-cli-${{ matrix.target }}
+          path: dist/*
+
+  publish:
+    name: publish release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Create the release (or add to it)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" dist/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" dist/* --title "rfid-cli $GITHUB_REF_NAME" --generate-notes
+          fi

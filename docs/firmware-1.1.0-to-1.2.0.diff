@@ -1,0 +1,375 @@
+diff --git a/firmware/Config.h b/firmware/Config.h
+index 9036107..cccefb1 100644
+--- a/firmware/Config.h
++++ b/firmware/Config.h
+@@ -66,3 +66,8 @@
+ // Serial/CLI still works during lockout.
+ #define MAX_CONSECUTIVE_DENIALS   5
+ #define LOCKOUT_DURATION_MS       (30UL * 1000UL)   // 30s
++
++// Import mode pauses the RFID reader. If the host vanishes mid-import
++// (cable pulled, CLI killed), revert to the flash copy after this much
++// serial silence instead of staying offline until reboot.
++#define IMPORT_IDLE_TIMEOUT_MS    (120UL * 1000UL)  // 2 min
+diff --git a/firmware/DatabaseManager.cpp b/firmware/DatabaseManager.cpp
+index ca37cf6..0a69ddd 100644
+--- a/firmware/DatabaseManager.cpp
++++ b/firmware/DatabaseManager.cpp
+@@ -659,15 +659,20 @@ bool DatabaseManager::removeAllExcept(const std::vector<String>& keepUids, size_
+ 
+   std::vector<UserRecord, PsramAllocator<UserRecord>> backup = users_;
+ 
++  // Sorted keep list + binary search: O(n log k) instead of the previous
++  // O(n * k) nested scan, which (with no watchdog feed) could trip the TWDT
++  // for a large keep list on a full 70k-user database.
++  std::sort(keepNorm.begin(), keepNorm.end(),
++            [](const String& a, const String& b) { return strcmp(a.c_str(), b.c_str()) < 0; });
+   std::vector<UserRecord, PsramAllocator<UserRecord>> kept;
+   kept.reserve(users_.size());
++  size_t scanned = 0;
+   for (const auto& u : users_) {
+-    bool keep = false;
+-    for (const auto& k : keepNorm) {
+-      if (u.uid == k) { keep = true; break; }
+-    }
++    bool keep = std::binary_search(keepNorm.begin(), keepNorm.end(), String(u.uid.c_str()),
++        [](const String& a, const String& b) { return strcmp(a.c_str(), b.c_str()) < 0; });
+     if (keep) kept.push_back(u);  // preserves users_'s existing sorted
+                                    // order, so kept stays sorted too.
++    if ((++scanned & 0xFF) == 0) esp_task_wdt_reset();
+   }
+ 
+   removedCountOut = users_.size() - kept.size();
+diff --git a/firmware/NetworkManager.cpp b/firmware/NetworkManager.cpp
+index b7e17c4..b2142f9 100644
+--- a/firmware/NetworkManager.cpp
++++ b/firmware/NetworkManager.cpp
+@@ -61,8 +61,11 @@ bool WifiTimeManager::setTimezone(long gmtOffsetSec, int daylightOffsetSec) {
+   daylightOffsetSec_ = daylightOffsetSec;
+ 
+   if (!isWifiConnected()) {
+-    // No network to verify against NTP yet -- persist anyway, applied on
+-    // next successful sync.
++    // No network to verify against NTP yet -- persist anyway. Also apply the
++    // TZ to the C library right away: previously localtime() kept the old
++    // offset until the next successful sync while isUserExpired_() already
++    // used the new one, so the two disagreed in the meantime.
++    configTime(gmtOffsetSec_, daylightOffsetSec_, NTP_SERVER_1, NTP_SERVER_2);
+     saveTimezone_(gmtOffsetSec_, daylightOffsetSec_);
+     return true;
+   }
+diff --git a/firmware/RFIDManager.cpp b/firmware/RFIDManager.cpp
+index aefa5a8..d80de3f 100644
+--- a/firmware/RFIDManager.cpp
++++ b/firmware/RFIDManager.cpp
+@@ -37,12 +37,15 @@ String RFIDManager::uidBytesToHex_(const uint8_t* uid, uint8_t len) {
+ bool RFIDManager::poll(String& uidOut) {
+   if (!ready_) return false;
+ 
+-  uint8_t uid[7];
++  // 10 bytes = triple-size ISO14443A UID. Adafruit_PN532 copies the UID
++  // length reported by the chip without bounds-checking, so the previous
++  // 7-byte buffer overflowed the stack on a triple-size card.
++  uint8_t uid[10];
+   uint8_t uidLength = 0;
+ 
+   bool found = nfc_.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength,
+                                          RFID_POLL_TIMEOUT_MS);
+-  if (!found || uidLength == 0) return false;
++  if (!found || uidLength == 0 || uidLength > sizeof(uid)) return false;
+ 
+   String hex = uidBytesToHex_(uid, uidLength);
+   uint32_t now = millis();
+diff --git a/firmware/SerialProtocol.cpp b/firmware/SerialProtocol.cpp
+index 3d93c05..5a2f023 100644
+--- a/firmware/SerialProtocol.cpp
++++ b/firmware/SerialProtocol.cpp
+@@ -7,6 +7,17 @@
+ #include <esp_task_wdt.h>
+ #include <algorithm>
+ 
++// Prints a double as a valid, round-trippable JSON number. Arduino's
++// Print::print(double) uses 2 decimals (0.333 -> "0.33", silently corrupting
++// list/JSON exports) and emits "nan"/"inf"/"ovf", which are not JSON.
++static void printJsonDouble(double v) {
++  if (isnan(v) || isinf(v)) { Serial.print('0'); return; }
++  char buf[32];
++  snprintf(buf, sizeof(buf), "%.15g", v);
++  if (strtod(buf, nullptr) != v) snprintf(buf, sizeof(buf), "%.17g", v);
++  Serial.print(buf);
++}
++
+ void SerialProtocol::begin(SerialMessageHandler handler) {
+   handler_ = handler;
+   lineLen_ = 0;
+@@ -152,7 +163,7 @@ void SerialProtocol::sendUserList(DatabaseManager& db) {
+     Serial.print("\",\"registered\":\"");
+     Serial.print(u.registered);
+     Serial.print("\",\"valid_days\":");
+-    Serial.print(u.validDays);
++    printJsonDouble(u.validDays);
+     Serial.print('}');
+     // Feed watchdog -- this loop blocks loop() for large lists.
+     if ((i & 0xFF) == 0xFF) {
+@@ -189,7 +200,7 @@ void SerialProtocol::sendFindNameResult(DatabaseManager& db, const String& query
+     Serial.print("\",\"registered\":\"");
+     Serial.print(u.registered);
+     Serial.print("\",\"valid_days\":");
+-    Serial.print(u.validDays);
++    printJsonDouble(u.validDays);
+     Serial.print('}');
+     if ((k & 0xFF) == 0xFF) esp_task_wdt_reset();
+   }
+@@ -266,6 +277,16 @@ void SerialProtocol::sendRenewalResult(const String& uid, const String& name,
+   Serial.println();
+ }
+ 
++void SerialProtocol::sendRenewalError(const String& uid, const String& message) {
++  DynamicJsonDocument doc(256);
++  doc["status"] = "error";
++  doc["type"] = "renewal_result";
++  doc["uid"] = uid;
++  doc["message"] = message;
++  serializeJson(doc, Serial);
++  Serial.println();
++}
++
+ void SerialProtocol::sendFindResult(bool found, const String& uid, const String& name,
+                                     const String& registered, double validDays,
+                                     uint32_t searchUs) {
+diff --git a/firmware/SerialProtocol.h b/firmware/SerialProtocol.h
+index af9515a..c5b3d9e 100644
+--- a/firmware/SerialProtocol.h
++++ b/firmware/SerialProtocol.h
+@@ -24,7 +24,7 @@ public:
+   // Reported by the "status" command.
+   // Bump firmware on releases; bump protocol only for wire-format changes.
+   // Control traffic uses JSON; bulk import/export uses raw binary.
+-  static constexpr const char* kFirmwareVersion = "1.1.0";
++  static constexpr const char* kFirmwareVersion = "1.2.0";
+   static constexpr const char* kProtocolVersion = "hybrid-json-ctrl+bin-bulk/v1";
+ 
+   void begin(SerialMessageHandler handler);
+@@ -55,6 +55,8 @@ public:
+ 
+   void sendRenewalResult(const String& uid, const String& name,
+                          const String& registered, double validDays);
++  // Renewal failure, typed so the host can tell it from a command reply.
++  void sendRenewalError(const String& uid, const String& message);
+ 
+   // search_us measures device-side lookup only.
+   void sendFindResult(bool found, const String& uid, const String& name,
+diff --git a/firmware/SystemController.cpp b/firmware/SystemController.cpp
+index 26e0e6c..4839cc6 100644
+--- a/firmware/SystemController.cpp
++++ b/firmware/SystemController.cpp
+@@ -80,7 +80,11 @@ void SystemController::begin() {
+   Serial.println(F("[boot] network_.begin() OK")); Serial.flush();
+ 
+   Serial.println(F("[boot] serial_.begin() ...")); Serial.flush();
+-  serial_.begin([this](JsonDocument& doc) { handleSerialMessage_(doc); });
++  serial_.begin([this](JsonDocument& doc) {
++    lastSerialActivityMs_ = millis();
++    handleSerialMessage_(doc);
++    lastSerialActivityMs_ = millis();  // long handlers (import_bin) count as activity
++  });
+   Serial.println(F("[boot] serial_.begin() OK")); Serial.flush();
+ 
+   serialWasConnected_ = (bool)Serial;
+@@ -122,6 +126,12 @@ void SystemController::update() {
+ 
+   uint32_t now = millis();
+ 
++  // Host vanished mid-import: without this the reader stayed paused (state
++  // DB_BUSY, no RFID polling) until someone power-cycled the controller.
++  if (db_.isImportMode() && (now - lastSerialActivityMs_) >= IMPORT_IDLE_TIMEOUT_MS) {
++    abortImport_();  // also restores the idle/scan screen and RFID polling
++  }
++
+   switch (state_) {
+     case SystemState::BOOT:
+       break;
+@@ -203,6 +213,12 @@ void SystemController::handleCardDetected_(const String& uid) {
+   if (scanModeActive_) {
+     // Report the UID without checking it against the DB, then fall back.
+     serial_.sendUidDetected(uid);
++    if (scanContinuous_) {
++      // Stay armed: a card presented while the host re-arms must not be
++      // evaluated as an access attempt (and count toward the lockout).
++      display_.showScanMode();
++      return;
++    }
+     scanModeActive_ = false;
+     enterState_(SystemState::IDLE);
+     display_.showIdle();
+@@ -212,30 +228,45 @@ void SystemController::handleCardDetected_(const String& uid) {
+   if (renewalActive_) {
+     UserRecord user;
+     bool found = db_.findUser(uid, user);
+-    if (found) {
+-      time_t now = network_.nowUtc() + network_.gmtOffsetSec() + network_.daylightOffsetSec();
+-      struct tm* t = localtime(&now);
++    // Each failure is reported with a typed renewal_result error so the CLI
++    // can tell it apart from a reply to one of its own commands.
++    struct tm tmNow;
++    time_t now = network_.nowUtc();
++    if (!found) {
++      serial_.sendRenewalError(uid, "UID not in database");
++      display_.showAccessDenied("Unknown");
++      buzzer_.playDenied();
++    } else if (user.isAdmin()) {
++      // Renewing would turn a never-expiring admin badge into an expiring one.
++      serial_.sendRenewalError(uid, "Admin badge never expires -- not renewed");
++      display_.showError("ADMIN: SKIPPED");
++      buzzer_.playDenied();
++    } else if (!network_.isTimeSynced() || localtime_r(&now, &tmNow) == nullptr) {
++      // Previously stamped 1970-01-01 (nowUtc() == 0 when unsynced), which
++      // made the "renewed" badge instantly expired.
++      serial_.sendRenewalError(uid, "NTP time not synced -- cannot date the renewal");
++      display_.showError("NO TIME SYNC");
++      buzzer_.playDenied();
++    } else {
++      // configTime() already applied the GMT/DST offset to localtime();
++      // the old code added the offset a second time, stamping the wrong
++      // date for part of every day.
+       char todayBuf[11];
+       snprintf(todayBuf, sizeof(todayBuf), "%04d-%02d-%02d",
+-               t->tm_year + 1900, t->tm_mon + 1, t->tm_mday);
++               tmNow.tm_year + 1900, tmNow.tm_mon + 1, tmNow.tm_mday);
+       String today(todayBuf);
+ 
+       String err;
+-      bool ok = db_.renewUser(uid, today, renewalValidDays_, err);
+-      if (ok) {
++      if (db_.renewUser(uid, today, renewalValidDays_, err)) {
+         db_.findUser(uid, user);
+         serial_.sendRenewalResult(uid, user.name, user.registered, user.validDays);
+         display_.showAccessGranted("RENEWED " + String(user.name));
+         buzzer_.playGranted();
+       } else {
+-        serial_.sendError(err);
++        serial_.sendRenewalError(uid, err);
+         display_.showError(err);
+         buzzer_.playDenied();
+       }
+-    } else {
+-      serial_.sendError("UID not in database");
+-      display_.showAccessDenied("Unknown");
+-      buzzer_.playDenied();
+     }
+     enterState_(SystemState::RESULT_DISPLAY);
+     return;
+@@ -397,16 +428,18 @@ void SystemController::handleSerialMessage_(JsonDocument& doc) {
+       serial_.sendError("Not enough free PSRAM for an import this size");
+       return;
+     }
+-    db_.reserveForImport(incomingUsers);
+-
+-    serial_.sendOk();  // ack signals host to start writing raw bytes
+-
++    // Allocate BEFORE the ack: once "ok" is sent the host streams raw
++    // bytes, and an error line sent after that point would be followed by
++    // the payload being parsed as (garbage) JSON commands.
+     const size_t kChunkBytes = (recSize <= 8192) ? (8192 / recSize) * recSize : recSize;
+     uint8_t* buf = (uint8_t*)heap_caps_malloc(kChunkBytes, MALLOC_CAP_SPIRAM);
+     if (!buf) {
+       serial_.sendError("Out of memory for import_bin buffer");
+       return;
+     }
++    db_.reserveForImport(incomingUsers);
++
++    serial_.sendOk();  // ack signals host to start writing raw bytes
+ 
+     size_t added = 0, errors = 0, consumed = 0;
+     unsigned long perChunkTimeoutMs = 5000;  // stall detector, not a flat budget
+@@ -637,10 +670,7 @@ void SystemController::handleSerialMessage_(JsonDocument& doc) {
+       serial_.sendError("Not enough free PSRAM for a sync this size");
+       return;
+     }
+-    db_.reserveForImport(addCount);
+-
+-    serial_.sendOk();  // ack signals host to start streaming raw bytes
+-
++    // Allocate BEFORE the ack (same reason as import_bin above).
+     size_t chunkCap = 8192;
+     uint8_t* buf = (uint8_t*)heap_caps_malloc(chunkCap, MALLOC_CAP_SPIRAM);
+     if (!buf) {
+@@ -648,6 +678,9 @@ void SystemController::handleSerialMessage_(JsonDocument& doc) {
+       return;
+     }
+     struct BufGuard { uint8_t* p; ~BufGuard() { if (p) heap_caps_free(p); } } bufGuard{buf};
++    db_.reserveForImport(addCount);
++
++    serial_.sendOk();  // ack signals host to start streaming raw bytes
+ 
+     size_t removed = 0, added = 0, replaced = 0, errors = 0;
+     unsigned long perChunkTimeoutMs = 5000;  // stall detector, not a flat budget
+@@ -809,6 +842,12 @@ void SystemController::handleSerialMessage_(JsonDocument& doc) {
+     return;
+   }
+ 
++  if (strcmp(type, "import_abort") == 0) {
++    abortImport_();
++    serial_.sendOk();
++    return;
++  }
++
+   if (strcmp(type, "import_end") == 0) {
+     size_t added = 0;
+     size_t errors = 0;
+@@ -866,6 +905,9 @@ void SystemController::handleSerialMessage_(JsonDocument& doc) {
+   if (strcmp(type, "enter_scan_mode") == 0) {
+     if (!renewalActive_) {
+       scanModeActive_ = true;
++      // Optional (firmware >= 1.2): keep scanning after each card. Older
++      // CLIs omit the key and get the original one-card behaviour.
++      scanContinuous_ = doc["continuous"] | false;
+       display_.showScanMode();
+     }
+     enterState_(SystemState::SCAN_MODE);
+@@ -875,6 +917,7 @@ void SystemController::handleSerialMessage_(JsonDocument& doc) {
+ 
+   if (strcmp(type, "exit_scan_mode") == 0) {
+     scanModeActive_ = false;
++    scanContinuous_ = false;
+     enterState_(SystemState::IDLE);
+     display_.showIdle();
+     serial_.sendOk();
+@@ -933,6 +976,14 @@ void SystemController::handleSerialMessage_(JsonDocument& doc) {
+   serial_.sendError("Unknown command type");
+ }
+ 
++void SystemController::abortImport_() {
++  if (!db_.isImportMode()) return;
++  db_.setImportMode(false);
++  db_.load();                       // RAM -> exactly what is on flash again
++  network_.setImportActive(false);
++  restoreIdleOrScanScreen_();
++}
++
+ void SystemController::handleSerialConnectionChange_() {
+   bool connected = (bool)Serial;
+ 
+diff --git a/firmware/SystemController.h b/firmware/SystemController.h
+index 21ebe02..1dd04ad 100644
+--- a/firmware/SystemController.h
++++ b/firmware/SystemController.h
+@@ -45,6 +45,7 @@ private:
+   String pendingUid_;
+ 
+   bool scanModeActive_ = false;
++  bool scanContinuous_ = false;      // stay in scan mode after each card (CLI scan --infinite)
+   bool renewalActive_ = false;
+   double renewalValidDays_ = 0.0;
+ 
+@@ -84,4 +85,9 @@ private:
+   }
+ 
+   void restoreIdleOrScanScreen_();
++
++  // Discards an unfinished import (import mode, RAM-only changes) and
++  // reloads the last persisted database. Safe to call when not importing.
++  void abortImport_();
++  uint32_t lastSerialActivityMs_ = 0;
+ };
+\ No newline at end of file
