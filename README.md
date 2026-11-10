@@ -130,6 +130,7 @@ With `arduino-cli`, the included helpers use the same core options as CI:
 
 ```powershell
 # Windows
+.\firmware\uploader.ps1 -Setup                 # once
 .\firmware\uploader.ps1 -Port COM5 -File firmware\firmware.ino -Monitor
 ```
 
