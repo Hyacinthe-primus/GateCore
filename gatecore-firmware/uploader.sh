@@ -11,7 +11,7 @@ LIBS=("Adafruit PN532" "LiquidCrystal I2C" "ArduinoJson@7.2.1")
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 port=""
-file="$script_dir/firmware.ino"
+file="$script_dir/gatecore-firmware.ino"
 baud=2000000
 monitor=0
 setup=0
@@ -33,7 +33,7 @@ Usage: $(basename "$0") [options]
 
   -p, --port PORT    serial port, e.g. /dev/ttyUSB0 or /dev/cu.usbserial-0001
                      (auto-picked when exactly one candidate is plugged in)
-  -f, --file FILE    sketch to build (default: firmware.ino next to this script)
+  -f, --file FILE    sketch to build (default: gatecore-firmware.ino next to this script)
   -m, --monitor      open the serial monitor after a successful upload
       --monitor-only open the serial monitor and skip compile and upload
   -b, --baud N       monitor baud rate (default: $baud, the firmware's SERIAL_BAUD)

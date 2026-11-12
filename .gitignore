@@ -1,14 +1,14 @@
 # Rust build output
-cli/target/
+gatecore-cli/target/
 
 # Local user data, runtime backups and scratch files (never commit badge holders' names)
-cli/usersdata/
-cli/backups/
+gatecore-cli/usersdata/
+gatecore-cli/backups/
 backups/
 *.part
 
 # Firmware build output
-firmware/build/
+gatecore-firmware/build/
 *.bin
 
 # Editors / OS

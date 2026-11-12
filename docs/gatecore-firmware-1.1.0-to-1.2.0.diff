@@ -1,7 +1,7 @@
-diff --git a/firmware/Config.h b/firmware/Config.h
+diff --git a/gatecore-firmware/Config.h b/gatecore-firmware/Config.h
 index 9036107..cccefb1 100644
---- a/firmware/Config.h
-+++ b/firmware/Config.h
+--- a/gatecore-firmware/Config.h
++++ b/gatecore-firmware/Config.h
 @@ -66,3 +66,8 @@
  // Serial/CLI still works during lockout.
  #define MAX_CONSECUTIVE_DENIALS   5
@@ -11,10 +11,10 @@ index 9036107..cccefb1 100644
 +// (cable pulled, CLI killed), revert to the flash copy after this much
 +// serial silence instead of staying offline until reboot.
 +#define IMPORT_IDLE_TIMEOUT_MS    (120UL * 1000UL)  // 2 min
-diff --git a/firmware/DatabaseManager.cpp b/firmware/DatabaseManager.cpp
+diff --git a/gatecore-firmware/DatabaseManager.cpp b/gatecore-firmware/DatabaseManager.cpp
 index ca37cf6..0a69ddd 100644
---- a/firmware/DatabaseManager.cpp
-+++ b/firmware/DatabaseManager.cpp
+--- a/gatecore-firmware/DatabaseManager.cpp
++++ b/gatecore-firmware/DatabaseManager.cpp
 @@ -659,15 +659,20 @@ bool DatabaseManager::removeAllExcept(const std::vector<String>& keepUids, size_
  
    std::vector<UserRecord, PsramAllocator<UserRecord>> backup = users_;
@@ -40,10 +40,10 @@ index ca37cf6..0a69ddd 100644
    }
  
    removedCountOut = users_.size() - kept.size();
-diff --git a/firmware/NetworkManager.cpp b/firmware/NetworkManager.cpp
+diff --git a/gatecore-firmware/NetworkManager.cpp b/gatecore-firmware/NetworkManager.cpp
 index b7e17c4..b2142f9 100644
---- a/firmware/NetworkManager.cpp
-+++ b/firmware/NetworkManager.cpp
+--- a/gatecore-firmware/NetworkManager.cpp
++++ b/gatecore-firmware/NetworkManager.cpp
 @@ -61,8 +61,11 @@ bool WifiTimeManager::setTimezone(long gmtOffsetSec, int daylightOffsetSec) {
    daylightOffsetSec_ = daylightOffsetSec;
  
@@ -58,10 +58,10 @@ index b7e17c4..b2142f9 100644
      saveTimezone_(gmtOffsetSec_, daylightOffsetSec_);
      return true;
    }
-diff --git a/firmware/RFIDManager.cpp b/firmware/RFIDManager.cpp
+diff --git a/gatecore-firmware/RFIDManager.cpp b/gatecore-firmware/RFIDManager.cpp
 index aefa5a8..d80de3f 100644
---- a/firmware/RFIDManager.cpp
-+++ b/firmware/RFIDManager.cpp
+--- a/gatecore-firmware/RFIDManager.cpp
++++ b/gatecore-firmware/RFIDManager.cpp
 @@ -37,12 +37,15 @@ String RFIDManager::uidBytesToHex_(const uint8_t* uid, uint8_t len) {
  bool RFIDManager::poll(String& uidOut) {
    if (!ready_) return false;
@@ -80,10 +80,10 @@ index aefa5a8..d80de3f 100644
  
    String hex = uidBytesToHex_(uid, uidLength);
    uint32_t now = millis();
-diff --git a/firmware/SerialProtocol.cpp b/firmware/SerialProtocol.cpp
+diff --git a/gatecore-firmware/SerialProtocol.cpp b/gatecore-firmware/SerialProtocol.cpp
 index 3d93c05..5a2f023 100644
---- a/firmware/SerialProtocol.cpp
-+++ b/firmware/SerialProtocol.cpp
+--- a/gatecore-firmware/SerialProtocol.cpp
++++ b/gatecore-firmware/SerialProtocol.cpp
 @@ -7,6 +7,17 @@
  #include <esp_task_wdt.h>
  #include <algorithm>
@@ -137,10 +137,10 @@ index 3d93c05..5a2f023 100644
  void SerialProtocol::sendFindResult(bool found, const String& uid, const String& name,
                                      const String& registered, double validDays,
                                      uint32_t searchUs) {
-diff --git a/firmware/SerialProtocol.h b/firmware/SerialProtocol.h
+diff --git a/gatecore-firmware/SerialProtocol.h b/gatecore-firmware/SerialProtocol.h
 index af9515a..c5b3d9e 100644
---- a/firmware/SerialProtocol.h
-+++ b/firmware/SerialProtocol.h
+--- a/gatecore-firmware/SerialProtocol.h
++++ b/gatecore-firmware/SerialProtocol.h
 @@ -24,7 +24,7 @@ public:
    // Reported by the "status" command.
    // Bump firmware on releases; bump protocol only for wire-format changes.
@@ -159,10 +159,10 @@ index af9515a..c5b3d9e 100644
  
    // search_us measures device-side lookup only.
    void sendFindResult(bool found, const String& uid, const String& name,
-diff --git a/firmware/SystemController.cpp b/firmware/SystemController.cpp
+diff --git a/gatecore-firmware/SystemController.cpp b/gatecore-firmware/SystemController.cpp
 index 26e0e6c..4839cc6 100644
---- a/firmware/SystemController.cpp
-+++ b/firmware/SystemController.cpp
+--- a/gatecore-firmware/SystemController.cpp
++++ b/gatecore-firmware/SystemController.cpp
 @@ -80,7 +80,11 @@ void SystemController::begin() {
    Serial.println(F("[boot] network_.begin() OK")); Serial.flush();
  
@@ -350,10 +350,10 @@ index 26e0e6c..4839cc6 100644
  void SystemController::handleSerialConnectionChange_() {
    bool connected = (bool)Serial;
  
-diff --git a/firmware/SystemController.h b/firmware/SystemController.h
+diff --git a/gatecore-firmware/SystemController.h b/gatecore-firmware/SystemController.h
 index 21ebe02..1dd04ad 100644
---- a/firmware/SystemController.h
-+++ b/firmware/SystemController.h
+--- a/gatecore-firmware/SystemController.h
++++ b/gatecore-firmware/SystemController.h
 @@ -45,6 +45,7 @@ private:
    String pendingUid_;
  

@@ -1,22 +1,22 @@
 # Choices and Modifications
 
 This release moves the host tool from Python to Rust, reorganises the
-repository around separate firmware and CLI trees, and updates the firmware to
-1.2.0. These notes record the layout, the main Rust decisions, the bugs fixed
-during the port, and the parts that still need hardware testing.
+repository around `gatecore-firmware/` and `gatecore-cli/`, and updates the
+firmware to 1.2.0. These notes record the layout, the main Rust decisions, the
+bugs fixed during the port, and the parts that still need hardware testing.
 
 ## 1. Repository layout
 
 ```
 RFID_Access_Control/
-├── firmware/              Arduino sources, partition table and upload helpers
-├── cli/                   Rust crate (rfid-cli)
+├── gatecore-firmware/     Arduino sources, partition table, upload helpers
+├── gatecore-cli/          Rust crate (gatecore-cli)
 │   ├── src/               library and thin binary
 │   ├── tests/             simulator tests and golden vectors
 │   ├── samples/           example JSON and CSV user files
 │   ├── usersdata/         local user files (git-ignored)
 │   └── backups/           automatic backups (git-ignored)
-├── docs/                  firmware 1.1.0 → 1.2.0 diff
+├── docs/                  gatecore-firmware 1.1.0 → 1.2.0 diff
 ├── .github/workflows/     CLI tests, firmware compile, release builds
 ├── Wiring.png
 ├── README.md
@@ -24,22 +24,22 @@ RFID_Access_Control/
 └── LICENSE.md
 ```
 
-The sketch moved to `firmware/firmware.ino`. The Arduino IDE requires the main
-`.ino` file to have the same name as its folder, so keeping
-`RFID_Access_Control.ino` inside `firmware/` would not build. The `Config.h`,
-`RFIDManager`, `SerialProtocol`, `SyncProfiler` and `SystemController` files
-moved with it.
+The sketch moved to `gatecore-firmware/gatecore-firmware.ino`. The Arduino IDE
+requires the main `.ino` file to have the same name as its folder, so keeping
+`RFID_Access_Control.ino` inside `gatecore-firmware/` would not build. The
+`Config.h`, `RFIDManager`, `SerialProtocol`, `SyncProfiler` and
+`SystemController` files moved with it.
 
 `python_cli/` and the old Python tests were removed. Their functionality now
-lives in `cli/src`; the test intent carried over into the Rust unit and
+lives in `gatecore-cli/src`; the test intent carried over into the Rust unit and
 simulator tests, though the suites are not one-for-one. The wiki is a separate
 Git repository. Its current pages
-describe `rfid-cli` 2.0.0 and firmware 1.2.0; the old Python CLI page is kept
-only as historical documentation.
+describe `gatecore-cli` 2.0.1 and firmware 1.2.0; the old Python CLI page is
+kept only as historical documentation.
 
-The `.gitignore` excludes `cli/target/`, `cli/usersdata/` and `cli/backups/`.
-The last two contain badge holders' names, so they must stay out of version
-control.
+The `.gitignore` excludes `gatecore-cli/target/`, `gatecore-cli/usersdata/`
+and `gatecore-cli/backups/`. The last two contain badge holders' names, so they
+must stay out of version control.
 
 ## 2. Rust CLI
 
@@ -198,8 +198,8 @@ disk, do not have a dedicated automated test.
 
 ## 4. Firmware 1.2.0
 
-The full diff is in `docs/firmware-1.1.0-to-1.2.0.diff`. It applies cleanly to
-the 1.1.0 sources after they are moved into `firmware/`.
+The full diff is in `docs/gatecore-firmware-1.1.0-to-1.2.0.diff`. It applies
+cleanly to the 1.1.0 sources after they are moved into `gatecore-firmware/`.
 
 | # | Area | Problem | Fix |
 |---|---|---|---|
@@ -239,7 +239,7 @@ Compatibility:
 
 | Host | Firmware 1.1.0 | Firmware 1.2.0 |
 |---|---|---|
-| `rfid-cli` 2.0.0 | Works. `import_abort` is unavailable, so a failed import needs a reboot. | Full functionality. |
+| `gatecore-cli` 2.0.x | Works. `import_abort` is unavailable, so a failed import needs a reboot. | Full functionality. |
 | Python CLI 1.0.1 | Works as before. | Protocol additions are backwards-compatible, but the old CLI does not use the 1.2 commands or fields. It is unmaintained and was not tested for this release. |
 
 ## 6. Build and run
@@ -254,7 +254,7 @@ Prerequisites:
   line tools.
 
 ```bash
-cd cli
+cd gatecore-cli
 cargo build --release --locked
 cargo test --locked
 cargo install --path . --locked
@@ -263,17 +263,17 @@ cargo install --path . --locked
 A few commands to check the installation:
 
 ```bash
-rfid-cli list-ports
-rfid-cli --port COM5 status
-rfid-cli add --uid 04A1B2C3 --name "Alice" --valid-days 365
-rfid-cli import samples/users_example.csv --dry-run
-rfid-cli export backup.bin
-rfid-cli convert backup.bin backup.json
+gatecore-cli list-ports
+gatecore-cli --port COM5 status
+gatecore-cli add --uid 04A1B2C3 --name "Alice" --valid-days 365
+gatecore-cli import samples/users_example.csv --dry-run
+gatecore-cli export backup.bin
+gatecore-cli convert backup.bin backup.json
 ```
 
-For the firmware, open `firmware/firmware.ino` with the board settings in the
-README, or use `firmware/uploader.ps1` on Windows and
-`firmware/uploader.sh` on Linux and macOS.
+For the firmware, open `gatecore-firmware/gatecore-firmware.ino` with the board settings in the
+README, or use `gatecore-firmware/uploader.ps1` on Windows and
+`gatecore-firmware/uploader.sh` on Linux and macOS.
 
 ## 7. Verification
 
@@ -286,7 +286,7 @@ The Rust side was verified with both toolchains used by CI:
   style warning (`manual_is_multiple_of` in `database.rs`).
 - `cargo +1.90.0 doc --locked --no-deps`: clean.
 - The firmware diff applies with `git apply --check` to the 1.1.0 sources once
-  they are placed under `firmware/`.
+  they are placed under `gatecore-firmware/`.
 
 The tests include 38 unit tests and 13 end-to-end tests. They cover the binary
 codec and golden vectors, validation, retries, noise handling, scan events,

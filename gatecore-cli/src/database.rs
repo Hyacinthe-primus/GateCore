@@ -1,6 +1,6 @@
 //! Validated domain model: UIDs, names, registration dates and validity.
 //!
-//! Every limit mirrors the firmware (`firmware/Config.h` and
+//! Every limit mirrors the firmware (`gatecore-firmware/Config.h` and
 //! `DatabaseManager::isValid*`), so invalid input is rejected on the host
 //! with a clear message instead of being half-accepted or truncated by the
 //! device:

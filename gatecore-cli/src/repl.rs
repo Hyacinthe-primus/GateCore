@@ -1,4 +1,4 @@
-//! Interactive shell (`rfid-cli` with no subcommand).
+//! Interactive shell (`gatecore-cli` with no subcommand).
 //!
 //! Lines are parsed by the same clap definitions as one-shot mode
 //! ([`ShellLine`]) and executed by the same [`commands::run`], against one
@@ -186,7 +186,7 @@ impl Helper for ShellHelper {}
 fn print_banner(conn: &mut Conn) {
     let line = "═".repeat(50);
     println!("{}", format!("╔{line}╗").cyan());
-    println!("{}", format!("║{:^50}║", "RFID Access Control").cyan().bold());
+    println!("{}", format!("║{:^50}║", "GateCore").cyan().bold());
     println!("{}", format!("║{:^50}║", format!("CLI v{}", env!("CARGO_PKG_VERSION"))).cyan());
     println!("{}", format!("╚{line}╝").cyan());
     match &mut conn.dev {
@@ -234,7 +234,7 @@ fn print_version(conn: &mut Conn) {
         },
         None => ("(not connected)".into(), "(not connected)".into()),
     };
-    println!("RFID CLI  {}", env!("CARGO_PKG_VERSION"));
+    println!("GateCore CLI  {}", env!("CARGO_PKG_VERSION"));
     println!("Firmware  {fw}");
     println!("Protocol  {proto}");
     println!("Platform  {}-{}", std::env::consts::OS, std::env::consts::ARCH);
@@ -250,7 +250,7 @@ fn split_line(line: &str) -> Option<Vec<String>> {
 }
 
 fn history_path() -> Option<PathBuf> {
-    dirs::home_dir().map(|h| h.join(".rfid_cli_history"))
+    dirs::home_dir().map(|h| h.join(".gatecore_cli_history"))
 }
 
 // Main loop
@@ -282,7 +282,7 @@ pub fn run(initial_port: Option<String>, baud: u32, verbose: bool) -> Result<()>
 
     loop {
         interrupt::clear();
-        let prompt = format!("rfid({})> ", conn.label());
+        let prompt = format!("gatecore({})> ", conn.label());
         let line = match rl.readline(&prompt) {
             Ok(l) => l,
             Err(ReadlineError::Interrupted) => continue,

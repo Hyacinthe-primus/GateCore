@@ -33,7 +33,7 @@ if (-not $ScriptDir) {
     $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 }
 if (-not $File) {
-    $File = Join-Path $ScriptDir "firmware.ino"
+    $File = Join-Path $ScriptDir "gatecore-firmware.ino"
 }
 
 function Show-Section([string]$Text) {
@@ -57,7 +57,7 @@ Usage: uploader.ps1 [options]
 
   -Port, -p PORT       serial port, e.g. COM5
                        (auto-picked when exactly one candidate is present)
-  -File, -f FILE       sketch to build (default: firmware.ino next to this script)
+  -File, -f FILE       sketch to build (default: gatecore-firmware.ino next to this script)
   -Monitor, -m         open the serial monitor after a successful upload
   -MonitorOnly         open the serial monitor and skip compile and upload
   -Baudrate, -b N      monitor baud rate (default: 2000000)
@@ -193,7 +193,7 @@ Show-Section "Compiling $File..."
 & arduino-cli compile --fqbn $Fqbn $File
 if ($LASTEXITCODE -ne 0) {
     $code = $LASTEXITCODE
-    Stop-WithError "Compilation failed. If the ESP32 core or a library is missing, run: .\firmware\uploader.ps1 -Setup" $code
+    Stop-WithError "Compilation failed. If the ESP32 core or a library is missing, run: .\gatecore-firmware\uploader.ps1 -Setup" $code
 }
 Show-Ok "Compilation successful."
 

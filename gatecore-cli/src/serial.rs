@@ -37,7 +37,7 @@ pub const RAW_STALL_TIMEOUT: Duration = Duration::from_secs(10);
 const MAX_LINE: usize = 64 * 1024 * 1024;
 
 /// (VID, PID) pairs of common ESP32-S3 USB bridges / native USB.
-/// Run `rfid-cli list-ports` to see what your OS reports.
+/// Run `gatecore-cli list-ports` to see what your OS reports.
 pub const KNOWN_ESP32_VID_PID: &[(u16, u16)] = &[
     (0x303A, 0x1001), // Espressif native USB-Serial/JTAG
     (0x303A, 0x0002), // Espressif USB CDC

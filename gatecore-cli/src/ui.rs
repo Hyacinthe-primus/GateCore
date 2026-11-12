@@ -1,7 +1,7 @@
 //! Terminal output: coloured status lines, tables, progress bars.
 //!
 //! Status lines (`info`/`success`) go to stdout, problems (`warning`/`error`)
-//! to stderr, so `rfid-cli export ... 2>/dev/null` stays clean. Colours honour
+//! to stderr, so `gatecore-cli export ... 2>/dev/null` stays clean. Colours honour
 //! `NO_COLOR`, `CLICOLOR_FORCE`, `--no-color` and non-TTY output via the
 //! `colored` crate.
 

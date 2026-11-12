@@ -1,7 +1,7 @@
 /*
- * RFID_Access_Control.ino
+ * gatecore-firmware.ino
  *
- * ESP32-S3 standalone RFID access controller.
+ * ESP32-S3 standalone access controller.
  * PN532 (hardware SPI) + 16x2 I2C LCD + LittleFS user database.
  * Serial link to the host CLI for admin operations; the controller runs
  * standalone with no PC attached.

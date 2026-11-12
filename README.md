@@ -1,40 +1,40 @@
-# RFID Access Control (ESP32-S3)
+# GateCore (ESP32-S3)
 
-[![CLI](https://img.shields.io/github/actions/workflow/status/Hyacinthe-primus/RFID_Access_Control/cli.yml?label=CLI&logo=githubactions&logoColor=white&style=for-the-badge)](https://github.com/Hyacinthe-primus/RFID_Access_Control/actions/workflows/cli.yml)
-[![Firmware](https://img.shields.io/github/actions/workflow/status/Hyacinthe-primus/RFID_Access_Control/firmware.yml?label=Firmware&logo=githubactions&logoColor=white&style=for-the-badge)](https://github.com/Hyacinthe-primus/RFID_Access_Control/actions/workflows/firmware.yml)
+[![CLI](https://img.shields.io/github/actions/workflow/status/Hyacinthe-primus/RFID_Access_Control/gatecore-cli.yml?label=CLI&logo=githubactions&logoColor=white&style=for-the-badge)](https://github.com/Hyacinthe-primus/RFID_Access_Control/actions/workflows/gatecore-cli.yml)
+[![Firmware](https://img.shields.io/github/actions/workflow/status/Hyacinthe-primus/RFID_Access_Control/gatecore-firmware.yml?label=Firmware&logo=githubactions&logoColor=white&style=for-the-badge)](https://github.com/Hyacinthe-primus/RFID_Access_Control/actions/workflows/gatecore-firmware.yml)
 ![Rust](https://img.shields.io/badge/CLI-Rust-000000?logo=rust&logoColor=white&style=for-the-badge)
 ![C++](https://img.shields.io/badge/Firmware-C%2B%2B-00599C?logo=cplusplus&logoColor=white&style=for-the-badge)
 ![ESP32-S3](https://img.shields.io/badge/ESP32-S3-E7352C?logo=espressif&logoColor=white&style=for-the-badge)
 ![Platforms](https://img.shields.io/badge/CLI-Windows%20%7C%20Linux%20%7C%20macOS-555?style=for-the-badge)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE.md)
 
-A standalone RFID access controller built around an ESP32-S3 and a PN532
+A standalone access controller built around an ESP32-S3 and a PN532
 reader. The board keeps its own user database on LittleFS, checks badge expiry
 against an NTP-synced clock, and runs without a computer attached. The LCD and
 passive buzzer provide the local feedback; admin badges never expire.
 
-`rfid-cli` is the host-side tool. It is a single Rust binary for Windows, Linux
+`gatecore-cli` is the host-side tool. It is a single Rust binary for Windows, Linux
 and macOS, and works either as one-shot commands for scripts or as an
 interactive shell. Imports and syncs use a raw binary transfer rather than
 sending one JSON message per user.
 
-Current versions: firmware **1.2.0**, `rfid-cli` **2.0.0**.
+Current versions: gatecore-firmware **1.2.0**, `gatecore-cli` **2.0.1**.
 
 ## Repository layout
 
 ```
 RFID_Access_Control/
-├── firmware/            Arduino sketch and upload helpers
-│   ├── firmware.ino     setup() and loop()
+├── gatecore-firmware/            Arduino sketch and upload helpers
+│   ├── gatecore-firmware.ino     setup() and loop()
 │   ├── *.h, *.cpp       controller, database, serial protocol, display, ...
 │   ├── partitions.csv   16 MB flash layout with a 12 MB LittleFS partition
 │   ├── uploader.ps1     build, upload and monitor (Windows)
 │   └── uploader.sh      build, upload and monitor (Linux, macOS)
-├── cli/                 rfid-cli (Rust)
+├── gatecore-cli/                 gatecore-cli (Rust)
 │   ├── src/             library and thin binary
 │   ├── tests/           golden vectors and an in-memory firmware simulator
 │   └── samples/         example CSV and JSON user files
-├── docs/                firmware 1.1.0 → 1.2.0 diff
+├── docs/                gatecore-firmware 1.1.0 → 1.2.0 diff
 ├── .github/workflows/   CLI tests, firmware compile, release builds
 ├── CHOICES_AND_MODIFICATIONS.md
 ├── Wiring.png
@@ -42,7 +42,7 @@ RFID_Access_Control/
 └── LICENSE.md
 ```
 
-## Install rfid-cli
+## Install GateCore CLI
 
 Release archives for Windows x64, Linux x64 and macOS (Apple silicon and Intel)
 are on the [Releases](https://github.com/Hyacinthe-primus/RFID_Access_Control/releases)
@@ -51,8 +51,8 @@ page. To build it yourself, install Rust 1.90 or newer from
 
 ```bash
 git clone https://github.com/Hyacinthe-primus/RFID_Access_Control.git
-cd RFID_Access_Control/cli
-cargo build --release --locked    # target/release/rfid-cli
+cd RFID_Access_Control/gatecore-cli
+cargo build --release --locked    # target/release/gatecore-cli
 cargo install --path . --locked   # optional: install it on PATH
 ```
 
@@ -65,30 +65,30 @@ cargo install --path . --locked   # optional: install it on PATH
 On Windows, run the built binary from the crate directory:
 
 ```powershell
-.\target\release\rfid-cli.exe list-ports
-.\target\release\rfid-cli.exe --port COM5 status
+.\target\release\gatecore-cli.exe list-ports
+.\target\release\gatecore-cli.exe --port COM5 status
 ```
 
-On Linux and macOS, `rfid-cli` can be used directly once it is on `PATH`:
+On Linux and macOS, `gatecore-cli` can be used directly once it is on `PATH`:
 
 ```bash
-rfid-cli list-ports
-rfid-cli --port /dev/ttyUSB0 status
+gatecore-cli list-ports
+gatecore-cli --port /dev/ttyUSB0 status
 ```
 
 ## Quick start
 
 ```bash
-rfid-cli                                  # no subcommand: interactive shell
-rfid-cli status
-rfid-cli add --uid 04A1B2C3 --name "Alice Martin" --valid-days 365
-rfid-cli add --uid 5AF73581 --name "Admin"          # no --valid-days: admin badge
-rfid-cli import users.csv --dry-run                 # validate without a device
-rfid-cli sync users.json --dry-run                  # show what would change
-rfid-cli export backup.bin                          # device binary format
-rfid-cli convert users.json users.bin               # offline conversion
-rfid-cli --help                                     # all commands
-rfid-cli <command> --help                           # command details
+gatecore-cli                                  # no subcommand: interactive shell
+gatecore-cli status
+gatecore-cli add --uid 04A1B2C3 --name "Alice Martin" --valid-days 365
+gatecore-cli add --uid 5AF73581 --name "Admin"          # no --valid-days: admin badge
+gatecore-cli import users.csv --dry-run                 # validate without a device
+gatecore-cli sync users.json --dry-run                  # show what would change
+gatecore-cli export backup.bin                          # device binary format
+gatecore-cli convert users.json users.bin               # offline conversion
+gatecore-cli --help                                     # all commands
+gatecore-cli <command> --help                           # command details
 ```
 
 The port is auto-detected. Use `--port` or `RFID_PORT` to override it. The baud
@@ -119,8 +119,8 @@ and `ArduinoJson` 7.x from the Arduino IDE Library Manager.
 
 With the Arduino IDE:
 
-1. Open `firmware/firmware.ino`. Keep the folder name `firmware`; the IDE
-   requires it to match the `.ino` file.
+1. Open `gatecore-firmware/gatecore-firmware.ino`. Keep the folder name
+   `gatecore-firmware`; the IDE requires it to match the `.ino` file.
 2. Select **ESP32S3 Dev Module**.
 3. Set **USB CDC On Boot: Disabled**, **Flash Size: 16MB (128Mb)**,
    **Partition Scheme: Custom**, and **PSRAM: OPI PSRAM**.
@@ -130,24 +130,25 @@ With `arduino-cli`, the included helpers use the same core options as CI:
 
 ```powershell
 # Windows
-.\firmware\uploader.ps1 -Setup                 # once
-.\firmware\uploader.ps1 -Port COM5 -File firmware\firmware.ino -Monitor
+.\gatecore-firmware\uploader.ps1 -Setup                 # once
+.\gatecore-firmware\uploader.ps1 -Port COM5 -File gatecore-firmware\gatecore-firmware.ino -Monitor
 ```
 
 ```bash
 # Linux and macOS
-./firmware/uploader.sh --setup                 # once
-./firmware/uploader.sh --port /dev/ttyUSB0 --monitor
+./gatecore-firmware/uploader.sh --setup                 # once
+./gatecore-firmware/uploader.sh --port /dev/ttyUSB0 --monitor
 ```
 
 If PowerShell blocks the script, run it with
-`powershell -ExecutionPolicy Bypass -File .\firmware\uploader.ps1 ...`.
-Both helpers open the serial monitor at 2000000 baud. That is the protocol rate, not the ESP32 USB upload speed.
+`powershell -ExecutionPolicy Bypass -File .\gatecore-firmware\uploader.ps1 ...`.
+Both helpers open the serial monitor at 2000000 baud. That is the protocol
+rate, not the ESP32 USB upload speed.
 
 ## Tests and CI
 
 ```bash
-cd cli
+cd gatecore-cli
 cargo test --locked
 ```
 

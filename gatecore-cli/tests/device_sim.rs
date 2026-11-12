@@ -1,6 +1,6 @@
 //! End-to-end tests: real `Device` + real command handlers against an
 //! in-memory simulation of the firmware's serial protocol
-//! (`firmware/SystemController.cpp` + `SerialProtocol.cpp`).
+//! (`gatecore-firmware/SystemController.cpp` + `SerialProtocol.cpp`).
 //!
 //! The simulator reuses the crate's record codec for storage; byte-level
 //! compatibility of that codec with the original implementation is proven
@@ -13,13 +13,13 @@ use std::time::Duration;
 
 use serde_json::{json, Value};
 
-use rfid_cli::cli::{BackupFormat, Command};
-use rfid_cli::commands::{self, Ctx};
-use rfid_cli::convert::{self, RECORD_SIZE, UID_ENTRY_SIZE};
-use rfid_cli::database::{parse_date, Uid, UserEntry, Validity};
-use rfid_cli::protocol::{Request, WireUser};
-use rfid_cli::serial::{Device, Link, RequestOpts};
-use rfid_cli::Error;
+use gatecore_cli::cli::{BackupFormat, Command};
+use gatecore_cli::commands::{self, Ctx};
+use gatecore_cli::convert::{self, RECORD_SIZE, UID_ENTRY_SIZE};
+use gatecore_cli::database::{parse_date, Uid, UserEntry, Validity};
+use gatecore_cli::protocol::{Request, WireUser};
+use gatecore_cli::serial::{Device, Link, RequestOpts};
+use gatecore_cli::Error;
 
 // Simulator
 
@@ -115,7 +115,7 @@ impl Sim {
     fn wire_to_entry(u: &Value) -> Result<UserEntry, String> {
         let uid = Uid::parse(u["uid"].as_str().ok_or("Missing 'uid' or 'name'")?).map_err(|_| "Invalid UID format")?;
         let name = u["name"].as_str().ok_or("Missing 'uid' or 'name'")?.to_string();
-        rfid_cli::database::validate_name(&name).map_err(|_| "Invalid or empty name")?;
+        gatecore_cli::database::validate_name(&name).map_err(|_| "Invalid or empty name")?;
         let validity = match (u.get("registered"), u.get("valid_days")) {
             (Some(r), Some(v)) => Validity::Expiring {
                 registered: Some(parse_date(r.as_str().unwrap()).map_err(|_| "Invalid 'registered' date")?),
@@ -362,7 +362,7 @@ fn setup() -> (Shared, Device) {
     (sim, dev)
 }
 
-fn run(dev: &mut Device, cmd: Command) -> rfid_cli::Result<()> {
+fn run(dev: &mut Device, cmd: Command) -> gatecore_cli::Result<()> {
     commands::run(&cmd, &mut Ctx::shared(dev))
 }
 
@@ -416,8 +416,8 @@ fn import_binary_then_export_roundtrip() {
 
     let out = dir.path().join("out.json");
     run(&mut dev, Command::Export { file: out.clone(), json_transport: false }).unwrap();
-    let back = rfid_cli::userfile::load(&out).unwrap().entries;
-    let orig = rfid_cli::userfile::load(&dir.path().join("u.json")).unwrap().entries;
+    let back = gatecore_cli::userfile::load(&out).unwrap().entries;
+    let orig = gatecore_cli::userfile::load(&dir.path().join("u.json")).unwrap().entries;
     let mut orig = orig;
     orig.sort_by(|a, b| a.uid.cmp(&b.uid));
     assert_eq!(back, orig);
@@ -504,7 +504,7 @@ fn sync_preserves_device_dates_for_undated_entries() {
         let new = &s.users[&Uid::parse("0A1B2C3D").unwrap()];
         assert_eq!(
             new.validity,
-            Validity::Expiring { registered: Some(rfid_cli::database::today()), valid_days: 10.0 }
+            Validity::Expiring { registered: Some(gatecore_cli::database::today()), valid_days: 10.0 }
         );
     }
     // Re-running is a no-op: the device's date is preserved.
@@ -516,7 +516,7 @@ fn sync_preserves_device_dates_for_undated_entries() {
     let s = sim.lock().unwrap();
     assert_eq!(
         s.users[&Uid::parse("04A1B2C3").unwrap()].validity,
-        Validity::Expiring { registered: Some(rfid_cli::database::today()), valid_days: 30.0 }
+        Validity::Expiring { registered: Some(gatecore_cli::database::today()), valid_days: 30.0 }
     );
 }
 

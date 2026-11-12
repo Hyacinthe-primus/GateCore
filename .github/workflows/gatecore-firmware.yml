@@ -1,22 +1,22 @@
-name: firmware
+name: gatecore-firmware
 
 on:
   push:
-    paths: ["firmware/**", ".github/workflows/firmware.yml"]
+    paths: ["gatecore-firmware/**", ".github/workflows/gatecore-firmware.yml"]
   pull_request:
-    paths: ["firmware/**", ".github/workflows/firmware.yml"]
+    paths: ["gatecore-firmware/**", ".github/workflows/gatecore-firmware.yml"]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: firmware-${{ github.ref }}
+  group: gatecore-firmware-${{ github.ref }}
   cancel-in-progress: true
 
 env:
   ESP32_INDEX_URL: https://espressif.github.io/arduino-esp32/package_esp32_index.json
-  # Same options as firmware/uploader.ps1 and firmware/uploader.sh.
+  # Same options as gatecore-firmware/uploader.ps1 and gatecore-firmware/uploader.sh.
   FQBN: esp32:esp32:esp32s3:FlashSize=16M,PSRAM=opi,PartitionScheme=custom
 
 jobs:
@@ -34,7 +34,7 @@ jobs:
           path: |
             ~/.arduino15
             ~/Arduino/libraries
-          key: arduino-${{ runner.os }}-${{ hashFiles('.github/workflows/firmware.yml') }}
+          key: arduino-${{ runner.os }}-${{ hashFiles('.github/workflows/gatecore-firmware.yml') }}
 
       - name: Install the ESP32 core and libraries
         run: |
@@ -45,10 +45,10 @@ jobs:
           arduino-cli lib install "Adafruit PN532" "LiquidCrystal I2C" "ArduinoJson@7.2.1"
 
       - name: Compile
-        run: arduino-cli compile --fqbn "$FQBN" --warnings default --output-dir "$RUNNER_TEMP/out" firmware/firmware.ino
+        run: arduino-cli compile --fqbn "$FQBN" --warnings default --output-dir "$RUNNER_TEMP/out" gatecore-firmware/gatecore-firmware.ino
 
       - uses: actions/upload-artifact@v4
         with:
-          name: firmware-esp32s3
+          name: gatecore-firmware-esp32s3
           path: ${{ runner.temp }}/out/*.bin
           retention-days: 14

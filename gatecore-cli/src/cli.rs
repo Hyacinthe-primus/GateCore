@@ -1,6 +1,6 @@
 //! Command-line definitions (clap derive).
 //!
-//! The same [`Command`] enum is parsed in one-shot mode (`rfid-cli status`)
+//! The same [`Command`] enum is parsed in one-shot mode (`gatecore-cli status`)
 //! and inside the interactive shell, so flags, help text and validation
 //! cannot drift between the two.
 
@@ -14,24 +14,24 @@ use crate::serial::DEFAULT_BAUD;
 
 #[derive(Debug, Parser)]
 #[command(
-    name = "rfid-cli",
+    name = "gatecore-cli",
     version,
-    about = "Manage the ESP32-S3 RFID Access Control user database over serial.",
-    long_about = "Manage the ESP32-S3 RFID Access Control user database over serial.\n\n\
+    about = "Manage the GateCore user database on the ESP32-S3 over serial.",
+    long_about = "Manage the GateCore user database on the ESP32-S3 over serial.\n\n\
                   Run without a subcommand to enter the interactive shell; run with a \
                   subcommand for one-shot, scriptable use. The serial port is auto-detected \
                   (override with --port or RFID_PORT).",
-    after_help = "Examples:\n  rfid-cli                         # interactive shell\n  \
-                  rfid-cli status\n  rfid-cli add --uid 04A1B2C3 --name \"Alice\" --valid-days 365\n  \
-                  rfid-cli sync users.json --dry-run\n  rfid-cli export backup.bin\n  \
-                  rfid-cli convert users.json users.bin"
+    after_help = "Examples:\n  gatecore-cli                         # interactive shell\n  \
+                  gatecore-cli status\n  gatecore-cli add --uid 04A1B2C3 --name \"Alice\" --valid-days 365\n  \
+                  gatecore-cli sync users.json --dry-run\n  gatecore-cli export backup.bin\n  \
+                  gatecore-cli convert users.json users.bin"
 )]
 pub struct Cli {
     /// Serial port (default: auto-detect). Also used by the shell to skip port selection.
     #[arg(long, global = true, env = "RFID_PORT")]
     pub port: Option<String>,
 
-    /// Baud rate (must match SERIAL_BAUD in firmware/Config.h).
+    /// Baud rate (must match SERIAL_BAUD in gatecore-firmware/Config.h).
     #[arg(long, global = true, env = "RFID_BAUD", default_value_t = DEFAULT_BAUD)]
     pub baud: u32,
 

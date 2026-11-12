@@ -1,4 +1,4 @@
-//! `users.bin` codec, shared byte-for-byte with `firmware/DatabaseManager.cpp`.
+//! `users.bin` codec, shared byte-for-byte with `gatecore-firmware/DatabaseManager.cpp`.
 //!
 //! ```text
 //! file   = header(7) record*

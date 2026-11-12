@@ -1,5 +1,5 @@
-//! `rfid_cli` -- host-side management library for the ESP32-S3 RFID Access
-//! Control firmware.
+//! `gatecore_cli` -- host-side management library for GateCore on the
+//! ESP32-S3 firmware.
 //!
 //! The binary (`src/main.rs`) is a thin shell around this library so every
 //! layer below can be unit- and integration-tested without hardware (see

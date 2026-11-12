@@ -86,7 +86,7 @@ pub fn backup_before_wipe(dev: &mut Device, reason: &str, format: BackupFormat) 
     } else {
         userfile::write_bin(&path, &raw)?;
         ui::info(&format!(
-            "Backup: {count} user(s) saved to {} (re-import it directly, or 'rfid-cli convert {} out.json')",
+            "Backup: {count} user(s) saved to {} (re-import it directly, or 'gatecore-cli convert {} out.json')",
             path.display(),
             path.display()
         ));

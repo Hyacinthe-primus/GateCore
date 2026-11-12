@@ -15,9 +15,9 @@ jobs:
       - uses: actions/checkout@v4
       - run: |
           tag="${GITHUB_REF_NAME#v}"
-          crate="$(grep -m1 '^version' cli/Cargo.toml | cut -d'"' -f2)"
+          crate="$(grep -m1 '^version' gatecore-cli/Cargo.toml | cut -d'"' -f2)"
           if [ "$tag" != "$crate" ]; then
-            echo "Tag v$tag does not match cli/Cargo.toml version $crate" >&2
+            echo "Tag v$tag does not match gatecore-cli/Cargo.toml version $crate" >&2
             exit 1
           fi
 
@@ -40,14 +40,14 @@ jobs:
           targets: ${{ matrix.target }}
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: cli
+          workspaces: gatecore-cli
           key: ${{ matrix.target }}
       - name: libudev (serial port enumeration)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y libudev-dev pkg-config
 
       - name: Build
-        working-directory: cli
+        working-directory: gatecore-cli
         run: cargo build --release --locked --target ${{ matrix.target }}
 
       - name: Package (Windows)
@@ -55,9 +55,9 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ github.ref_name }}".TrimStart("v")
-          $name = "rfid-cli-$version-${{ matrix.target }}"
+          $name = "gatecore-cli-$version-${{ matrix.target }}"
           New-Item -ItemType Directory -Path "dist/$name" | Out-Null
-          Copy-Item "cli/target/${{ matrix.target }}/release/rfid-cli.exe" "dist/$name/"
+          Copy-Item "gatecore-cli/target/${{ matrix.target }}/release/gatecore-cli.exe" "dist/$name/"
           Copy-Item README.md, LICENSE.md "dist/$name/"
           Compress-Archive -Path "dist/$name" -DestinationPath "dist/$name.zip"
           $hash = (Get-FileHash "dist/$name.zip" -Algorithm SHA256).Hash.ToLower()
@@ -68,16 +68,16 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           version="${GITHUB_REF_NAME#v}"
-          name="rfid-cli-${version}-${{ matrix.target }}"
+          name="gatecore-cli-${version}-${{ matrix.target }}"
           mkdir -p "dist/$name"
-          cp "cli/target/${{ matrix.target }}/release/rfid-cli" README.md LICENSE.md "dist/$name/"
+          cp "gatecore-cli/target/${{ matrix.target }}/release/gatecore-cli" README.md LICENSE.md "dist/$name/"
           tar -C dist -czf "dist/$name.tar.gz" "$name"
           (cd dist && shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256")
           rm -rf "dist/$name"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: rfid-cli-${{ matrix.target }}
+          name: gatecore-cli-${{ matrix.target }}
           path: dist/*
 
   publish:
@@ -99,5 +99,5 @@ jobs:
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
             gh release upload "$GITHUB_REF_NAME" dist/* --clobber
           else
-            gh release create "$GITHUB_REF_NAME" dist/* --title "rfid-cli $GITHUB_REF_NAME" --generate-notes
+            gh release create "$GITHUB_REF_NAME" dist/* --title "GateCore $GITHUB_REF_NAME" --generate-notes
           fi

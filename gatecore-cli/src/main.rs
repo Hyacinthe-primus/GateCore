@@ -1,11 +1,11 @@
-//! `rfid-cli` entry point: parse arguments, then either run one command or
+//! `gatecore-cli` entry point: parse arguments, then either run one command or
 //! start the interactive shell. All real work lives in the library crate.
 
 use clap::Parser;
 
-use rfid_cli::cli::Cli;
-use rfid_cli::commands::{self, Ctx};
-use rfid_cli::{interrupt, repl, ui, Error};
+use gatecore_cli::cli::Cli;
+use gatecore_cli::commands::{self, Ctx};
+use gatecore_cli::{interrupt, repl, ui, Error};
 
 fn main() {
     interrupt::install();
