@@ -8,7 +8,7 @@ bugs fixed during the port, and the parts that still need hardware testing.
 ## 1. Repository layout
 
 ```
-RFID_Access_Control/
+GateCore/
 ├── gatecore-firmware/     Arduino sources, partition table, upload helpers
 ├── gatecore-cli/          Rust crate (gatecore-cli)
 │   ├── src/               library and thin binary

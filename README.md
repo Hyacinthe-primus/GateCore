@@ -1,7 +1,7 @@
 # GateCore (ESP32-S3)
 
-[![CLI](https://img.shields.io/github/actions/workflow/status/Hyacinthe-primus/RFID_Access_Control/gatecore-cli.yml?label=CLI&logo=githubactions&logoColor=white&style=for-the-badge)](https://github.com/Hyacinthe-primus/RFID_Access_Control/actions/workflows/gatecore-cli.yml)
-[![Firmware](https://img.shields.io/github/actions/workflow/status/Hyacinthe-primus/RFID_Access_Control/gatecore-firmware.yml?label=Firmware&logo=githubactions&logoColor=white&style=for-the-badge)](https://github.com/Hyacinthe-primus/RFID_Access_Control/actions/workflows/gatecore-firmware.yml)
+[![CLI](https://img.shields.io/github/actions/workflow/status/Hyacinthe-primus/GateCore/gatecore-cli.yml?label=CLI&logo=githubactions&logoColor=white&style=for-the-badge)](https://github.com/Hyacinthe-primus/GateCore/actions/workflows/gatecore-cli.yml)
+[![Firmware](https://img.shields.io/github/actions/workflow/status/Hyacinthe-primus/GateCore/gatecore-firmware.yml?label=Firmware&logo=githubactions&logoColor=white&style=for-the-badge)](https://github.com/Hyacinthe-primus/GateCore/actions/workflows/gatecore-firmware.yml)
 ![Rust](https://img.shields.io/badge/CLI-Rust-000000?logo=rust&logoColor=white&style=for-the-badge)
 ![C++](https://img.shields.io/badge/Firmware-C%2B%2B-00599C?logo=cplusplus&logoColor=white&style=for-the-badge)
 ![ESP32-S3](https://img.shields.io/badge/ESP32-S3-E7352C?logo=espressif&logoColor=white&style=for-the-badge)
@@ -23,7 +23,7 @@ Current versions: gatecore-firmware **1.2.0**, `gatecore-cli` **2.0.1**.
 ## Repository layout
 
 ```
-RFID_Access_Control/
+GateCore/
 ├── gatecore-firmware/            Arduino sketch and upload helpers
 │   ├── gatecore-firmware.ino     setup() and loop()
 │   ├── *.h, *.cpp       controller, database, serial protocol, display, ...
@@ -45,13 +45,13 @@ RFID_Access_Control/
 ## Install GateCore CLI
 
 Release archives for Windows x64, Linux x64 and macOS (Apple silicon and Intel)
-are on the [Releases](https://github.com/Hyacinthe-primus/RFID_Access_Control/releases)
+are on the [Releases](https://github.com/Hyacinthe-primus/GateCore/releases)
 page. To build it yourself, install Rust 1.90 or newer from
 [rustup.rs](https://rustup.rs), then:
 
 ```bash
-git clone https://github.com/Hyacinthe-primus/RFID_Access_Control.git
-cd RFID_Access_Control/gatecore-cli
+git clone https://github.com/Hyacinthe-primus/GateCore.git
+cd GateCore/gatecore-cli
 cargo build --release --locked    # target/release/gatecore-cli
 cargo install --path . --locked   # optional: install it on PATH
 ```
@@ -100,15 +100,15 @@ forced interrupt.
 
 ## Documentation
 
-The wiki contains the [installation guide](https://github.com/Hyacinthe-primus/RFID_Access_Control/wiki/Installation),
-the [full CLI reference](https://github.com/Hyacinthe-primus/RFID_Access_Control/wiki/CLI-Guide),
-the [serial protocol](https://github.com/Hyacinthe-primus/RFID_Access_Control/wiki/Serial-Protocol-Specification),
-[firmware setup](https://github.com/Hyacinthe-primus/RFID_Access_Control/wiki/Firmware-Setup),
-[hardware and wiring](https://github.com/Hyacinthe-primus/RFID_Access_Control/wiki/Hardware-and-Wiring),
-[troubleshooting](https://github.com/Hyacinthe-primus/RFID_Access_Control/wiki/Troubleshooting),
-and notes on the [project structure](https://github.com/Hyacinthe-primus/RFID_Access_Control/wiki/Project-Structure)
-and [development workflow](https://github.com/Hyacinthe-primus/RFID_Access_Control/wiki/Development).
-The [changelog](https://github.com/Hyacinthe-primus/RFID_Access_Control/wiki/CHANGELOG)
+The wiki contains the [installation guide](https://github.com/Hyacinthe-primus/GateCore/wiki/Installation),
+the [full CLI reference](https://github.com/Hyacinthe-primus/GateCore/wiki/CLI-Guide),
+the [serial protocol](https://github.com/Hyacinthe-primus/GateCore/wiki/Serial-Protocol-Specification),
+[firmware setup](https://github.com/Hyacinthe-primus/GateCore/wiki/Firmware-Setup),
+[hardware and wiring](https://github.com/Hyacinthe-primus/GateCore/wiki/Hardware-and-Wiring),
+[troubleshooting](https://github.com/Hyacinthe-primus/GateCore/wiki/Troubleshooting),
+and notes on the [project structure](https://github.com/Hyacinthe-primus/GateCore/wiki/Project-Structure)
+and [development workflow](https://github.com/Hyacinthe-primus/GateCore/wiki/Development).
+The [changelog](https://github.com/Hyacinthe-primus/GateCore/wiki/CHANGELOG)
 and [`CHOICES_AND_MODIFICATIONS.md`](CHOICES_AND_MODIFICATIONS.md) cover release
 history and the reasoning behind the current design.
 

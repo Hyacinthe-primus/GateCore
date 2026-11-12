@@ -12,7 +12,7 @@ jobs:
     name: tag matches Cargo.toml
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: |
           tag="${GITHUB_REF_NAME#v}"
           crate="$(grep -m1 '^version' gatecore-cli/Cargo.toml | cut -d'"' -f2)"
@@ -34,7 +34,7 @@ jobs:
           - { os: macos-latest,   target: x86_64-apple-darwin }
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
@@ -75,7 +75,7 @@ jobs:
           (cd dist && shasum -a 256 "$name.tar.gz" > "$name.tar.gz.sha256")
           rm -rf "dist/$name"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: gatecore-cli-${{ matrix.target }}
           path: dist/*
@@ -87,7 +87,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true

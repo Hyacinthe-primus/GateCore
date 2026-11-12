@@ -62,11 +62,11 @@ Existing command names and flags are unchanged apart from the executable name.
 
 ## Documentation
 
-- [Installation](https://github.com/Hyacinthe-primus/RFID_Access_Control/wiki/Installation)
-- [CLI Guide](https://github.com/Hyacinthe-primus/RFID_Access_Control/wiki/CLI-Guide)
-- [Serial Protocol](https://github.com/Hyacinthe-primus/RFID_Access_Control/wiki/Serial-Protocol-Specification)
-- [Firmware Setup](https://github.com/Hyacinthe-primus/RFID_Access_Control/wiki/Firmware-Setup)
-- [Troubleshooting](https://github.com/Hyacinthe-primus/RFID_Access_Control/wiki/Troubleshooting)
-- [Changelog](https://github.com/Hyacinthe-primus/RFID_Access_Control/wiki/CHANGELOG)
+- [Installation](https://github.com/Hyacinthe-primus/GateCore/wiki/Installation)
+- [CLI Guide](https://github.com/Hyacinthe-primus/GateCore/wiki/CLI-Guide)
+- [Serial Protocol](https://github.com/Hyacinthe-primus/GateCore/wiki/Serial-Protocol-Specification)
+- [Firmware Setup](https://github.com/Hyacinthe-primus/GateCore/wiki/Firmware-Setup)
+- [Troubleshooting](https://github.com/Hyacinthe-primus/GateCore/wiki/Troubleshooting)
+- [Changelog](https://github.com/Hyacinthe-primus/GateCore/wiki/CHANGELOG)
 
-**Full Changelog:** https://github.com/Hyacinthe-primus/RFID_Access_Control/compare/v2.0.0...v2.0.1
+**Full Changelog:** https://github.com/Hyacinthe-primus/GateCore/compare/v2.0.0...v2.0.1

@@ -24,12 +24,18 @@ jobs:
     name: compile (ESP32-S3)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: arduino/setup-arduino-cli@v2
+      - name: Install arduino-cli
+        env:
+          ARDUINO_CLI_VERSION: 1.5.1
+        run: |
+          curl -fsSL "https://github.com/arduino/arduino-cli/releases/download/v${ARDUINO_CLI_VERSION}/arduino-cli_${ARDUINO_CLI_VERSION}_Linux_64bit.tar.gz" -o /tmp/arduino-cli.tar.gz
+          sudo tar -xzf /tmp/arduino-cli.tar.gz -C /usr/local/bin arduino-cli
+          arduino-cli version
 
       - name: Cache the ESP32 core and libraries
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             ~/.arduino15
@@ -47,7 +53,7 @@ jobs:
       - name: Compile
         run: arduino-cli compile --fqbn "$FQBN" --warnings default --output-dir "$RUNNER_TEMP/out" gatecore-firmware/gatecore-firmware.ino
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: gatecore-firmware-esp32s3
           path: ${{ runner.temp }}/out/*.bin
